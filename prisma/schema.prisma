@@ -8,11 +8,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum ReadingSlot {
-  MORNING_FASTING
-  AFTER_BREAKFAST
-  AFTER_LUNCH
-  AFTER_DINNER
+enum Slot {
+  morning_fasting
+  after_breakfast
+  after_lunch
+  after_dinner
 }
 
 model User {
@@ -26,10 +26,10 @@ model User {
 }
 
 model Reading {
-  id        String      @id @default(uuid())
+  id        Int         @id @default(autoincrement())
   userId    String
   date      DateTime    @db.Date
-  slot      ReadingSlot
+  slot      Slot
   value     Int
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime    @default(now())

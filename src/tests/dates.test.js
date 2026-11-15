@@ -1,4 +1,4 @@
-const { getRanges } = require("../src/utils/dates");
+const { getRanges } = require("../utils/dates");
 
 test("monthly = previous month", () => {
   expect(getRanges("2026-10-15").monthly).toEqual({ from: "2026-09-01", to: "2026-09-30" });
