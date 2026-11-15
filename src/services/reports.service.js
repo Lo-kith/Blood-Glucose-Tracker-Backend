@@ -2,6 +2,10 @@ const prisma = require("../config/prisma");
 const { getRanges } = require("../utils/dates");
 const { toDb } = require("../utils/dbDate");
 const readings = require("./readings.service");
+const buildReportKey = require("../cache/buildReportKey");
+const getCached = require("../cache/getCached");
+
+const TTL_SECONDS = 300;
 
 async function stats(userId, { from, to }) {
   const a = await prisma.reading.aggregate({
@@ -21,11 +25,20 @@ async function stats(userId, { from, to }) {
   };
 }
 
-const daily = async (uid, date) => ({
-  ...(await stats(uid, getRanges(date).daily)),
-  readings: await readings.listByDate(uid, date),
-});
-const monthToDate = (uid, date) => stats(uid, getRanges(date).monthToDate);
-const monthly = (uid, date) => stats(uid, getRanges(date).monthly);
+const daily = (uid, date) =>
+  getCached(buildReportKey(uid, "daily", date), TTL_SECONDS, async () => ({
+    ...(await stats(uid, getRanges(date).daily)),
+    readings: await readings.listByDate(uid, date),
+  }));
+
+const monthToDate = (uid, date) =>
+  getCached(buildReportKey(uid, "month-to-date", date), TTL_SECONDS, () =>
+    stats(uid, getRanges(date).monthToDate)
+  );
+
+const monthly = (uid, date) =>
+  getCached(buildReportKey(uid, "monthly", date), TTL_SECONDS, () =>
+    stats(uid, getRanges(date).monthly)
+  );
 
 module.exports = { daily, monthToDate, monthly };
