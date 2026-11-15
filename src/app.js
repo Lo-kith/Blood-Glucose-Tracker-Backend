@@ -1,7 +1,11 @@
 const express = require("express");
 const cors = require("cors");
 
-const authRoutes = require("./routes/auth.routes");
+const authRoutes = require("./routes/authRoutes/auth.routes");
+const readingsRoutes = require("./routes/readingsRoutes/readings.routes");
+const reportsRoutes = require("./routes/reportRoutes/reports.routes");
+const authenticateUser = require("./middleware/auth.middleware");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
@@ -19,5 +23,9 @@ app.get("/api/health", (req, res) => {
 
 // Authentication routes
 app.use("/api/auth", authRoutes);
+app.use("/api/readings", authenticateUser, readingsRoutes);
+app.use("/api/reports", authenticateUser, reportsRoutes);
+
+app.use(errorHandler);   // must be last
 
 module.exports = app;
