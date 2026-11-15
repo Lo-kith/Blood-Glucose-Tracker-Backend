@@ -15,8 +15,7 @@ const readingSchema = z.object({
   slot: z.enum(SLOTS, { errorMap: () => ({ message: 'Please choose a time slot.' }) }),
   value: z.preprocess(
     v => (v === '' || v == null ? undefined : Number(v)),
-    z.number({ required_error: 'Please enter a glucose value.',
-               invalid_type_error: 'Please enter a glucose value.' })
+   z.number({ error: 'Please enter a glucose value.' })
       .int(RANGE_MSG).min(40, RANGE_MSG).max(600, RANGE_MSG)
   ),
 });

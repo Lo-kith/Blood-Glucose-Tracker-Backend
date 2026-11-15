@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
-   "seed": "node src/seeds/seed.js",
-    "dev": "nodemon src/server.js"
+    "seed": "node src/seeds/seed.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest src/tests/dates.test.js src/tests/reading.schema.test.js && node --test src/tests/api.test.js src/tests/validation.test.js"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +25,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "jest": "^30.5.2",
     "nodemon": "^3.1.14",
     "prisma": "^6.19.0"
   }
