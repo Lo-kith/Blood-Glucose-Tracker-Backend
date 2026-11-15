@@ -2,6 +2,7 @@ const prisma = require("../config/prisma");
 const AppError = require("../utils/AppError");
 const { toDb, toStr } = require("../utils/dbDate");
 const { SLOTS, SLOT_LABELS } = require("../validators/reading.schema");
+const clearUserReports = require("../cache/clearUserReports");
 
 const shape = (r) => ({ id: r.id, date: toStr(r.date), slot: r.slot, value: r.value });
 const dupMsg = (slot) => `You already have an ${SLOT_LABELS[slot]} reading for this date.`;
@@ -23,15 +24,17 @@ async function assertCanSave(userId, { date, slot }, excludeId) {
 
 async function create(userId, data) {
   await assertCanSave(userId, data);
+  let r;
   try {
-    const r = await prisma.reading.create({
+    r = await prisma.reading.create({
       data: { userId, date: toDb(data.date), slot: data.slot, value: data.value },
     });
-    return shape(r);
   } catch (e) {
     if (e.code === "P2002") throw new AppError(409, dupMsg(data.slot), "slot"); // race condition
     throw e;
   }
+  await clearUserReports(userId); // only after the row is saved
+  return shape(r);
 }
 
 async function update(userId, id, data) {
@@ -42,12 +45,14 @@ async function update(userId, id, data) {
     where: { id },
     data: { date: toDb(data.date), slot: data.slot, value: data.value },
   });
+  await clearUserReports(userId);
   return shape(r);
 }
 
 async function remove(userId, id) {
   const { count } = await prisma.reading.deleteMany({ where: { id, userId } });
   if (!count) throw new AppError(404, "Reading not found.");
+  await clearUserReports(userId);
 }
 
 async function listByDate(userId, date) {
