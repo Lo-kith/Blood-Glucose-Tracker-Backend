@@ -1,7 +1,9 @@
 require("dotenv").config();
 const bcrypt = require("bcrypt");
 const prisma = require("../config/prisma");
-const { todayStr } = require("../utils/dates");
+const redis = require("../config/redis");
+const clearUserReports = require("../cache/clearUserReports");
+const { todayStr, getRanges } = require("../utils/dates");
 const { SLOTS } = require("../validators/reading.schema");
 
 async function main() {
@@ -19,19 +21,18 @@ async function main() {
     },
   });
 
-  // Build readings for the last 45 days (today included, never future)
-  const today = new Date(`${todayStr()}T00:00:00Z`);
+  // From the 1st of the previous month up to today (never a future date)
+  const { from } = getRanges(todayStr()).monthly;
+  const start = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${todayStr()}T00:00:00Z`);
   const rows = [];
 
-  for (let i = 0; i < 45; i++) {
-    const day = new Date(today);
-    day.setUTCDate(day.getUTCDate() - i);
-
+  for (const day = new Date(start); day <= end; day.setUTCDate(day.getUTCDate() + 1)) {
     SLOTS.forEach((slot) => {
       if (Math.random() < 0.2) return; // skip ~20% so some days have fewer than 4
       rows.push({
         userId: user.id,
-        date: day,
+        date: new Date(day), // copy, because `day` keeps changing
         slot,
         value: 80 + Math.floor(Math.random() * 141), // 80 to 220
       });
@@ -39,6 +40,7 @@ async function main() {
   }
 
   await prisma.reading.createMany({ data: rows, skipDuplicates: true });
+  await clearUserReports(user.id); // so old cached reports are not shown
 
   console.log(`Seeded ${rows.length} readings for ${email} / Demo@1234`);
 }
@@ -48,4 +50,7 @@ main()
     console.error("Seed failed:", e.message);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(async () => {
+    await prisma.$disconnect();
+    if (redis) redis.disconnect();
+  });
